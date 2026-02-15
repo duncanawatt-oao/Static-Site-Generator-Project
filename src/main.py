@@ -37,7 +37,7 @@ def extract_title(markdown):
     return header
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} \nto {dest_path} using {template_path}")
     with open(from_path) as f:
         md = f.read()
@@ -49,6 +49,8 @@ def generate_page(from_path, template_path, dest_path):
     title = extract_title(md)
     template = template.replace("{{ Title }}", title)
     template = template.replace("{{ Content }}", html_str)
+    template = template.replace('href="/', f'href="{basepath}')
+    template = template.replace('src="/', f'src="{basepath}')
     dest_dir = os.path.dirname(dest_path)
     if dest_dir != "":
         os.makedirs(dest_dir, exist_ok=True)
@@ -57,7 +59,7 @@ def generate_page(from_path, template_path, dest_path):
         out.write(template)
 
 
-def generate_pages_recursive(dir_path, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path, template_path, dest_dir_path, basepath):
     dir_items = os.listdir(dir_path)
     for item in dir_items:
         working_path = os.path.join(dir_path, item)
@@ -65,9 +67,9 @@ def generate_pages_recursive(dir_path, template_path, dest_dir_path):
         if working_path.endswith(".md"):
             working_dest_path = working_dest_path[:-3]
             working_dest_path += ".html"
-            generate_page(working_path, template_path, working_dest_path)
+            generate_page(working_path, template_path, working_dest_path, basepath)
         if os.path.isdir(working_path):
-            generate_pages_recursive(working_path, template_path, working_dest_path)
+            generate_pages_recursive(working_path, template_path, working_dest_path, basepath)
 
 
 
@@ -75,18 +77,22 @@ def generate_pages_recursive(dir_path, template_path, dest_dir_path):
 
 
 def main():
-    print("Running Static Site Generator...")
 
+    print("Running Static Site Generator...")
+    if len(sys.argv) > 1:
+        basepath = sys.argv[1]
+    else:
+        basepath = "/"
     if os.path.isdir("./static"):
         pass
     else:
         raise Exception("Error: Directory 'static' not found")
-    if os.path.exists("./public"):
-        shutil.rmtree("./public")
-    os.mkdir("./public")
-    copy_static_to_public("./static", "./public")
+    if os.path.exists("./docs"):
+        shutil.rmtree("./docs")
+    os.mkdir("./docs")
+    copy_static_to_public("./static", "./docs")
     print("Copying complete")
-    generate_pages_recursive("content", "template.html", "public")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 
 main()
